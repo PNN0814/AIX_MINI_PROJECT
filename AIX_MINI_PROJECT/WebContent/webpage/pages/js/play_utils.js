@@ -1,80 +1,100 @@
+// 공통 연결 관계 정의
+export const CONNECTED_KEYPOINTS = [
+  [0,1],[1,3],[0,2],[2,4],
+  [5,7],[7,9],[6,8],[8,10],
+  [5,6],[5,11],[6,12],
+  [11,12],[11,13],[13,15],[12,14],[14,16]
+];
+
+// 내 스켈레톤 (빨간 점 + 빨간 선)
+export function drawMySkeleton(keypoints, ctx) {
+  // 점
+  keypoints.forEach(kp => {
+    if (kp.score > 0.4) {
+      ctx.beginPath();
+      ctx.arc(kp.x, kp.y, 4, 0, 2 * Math.PI);
+      ctx.fillStyle = "red";
+      ctx.fill();
+    }
+  });
+
+  // 선
+  ctx.strokeStyle = "red";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([]); // 실선
+  CONNECTED_KEYPOINTS.forEach(([a, b]) => {
+    const kp1 = keypoints[a];
+    const kp2 = keypoints[b];
+    if (kp1 && kp2 && kp1.score > 0.4 && kp2.score > 0.4) {
+      ctx.beginPath();
+      ctx.moveTo(kp1.x, kp1.y);
+      ctx.lineTo(kp2.x, kp2.y);
+      ctx.stroke();
+    }
+  });
+}
+
+// 가이드 스켈레톤 (시안 점선)
+export function drawGuideSkeleton(keypoints, ctx) {
+  // 점
+  keypoints.forEach(kp => {
+    if (kp.score > 0.4) {
+      ctx.beginPath();
+      ctx.arc(kp.x, kp.y, 4, 0, 2 * Math.PI);
+      ctx.fillStyle = "cyan";
+      ctx.fill();
+    }
+  });
+
+  // 선
+  ctx.strokeStyle = "cyan";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([4, 4]); // 점선
+  CONNECTED_KEYPOINTS.forEach(([a, b]) => {
+    const kp1 = keypoints[a];
+    const kp2 = keypoints[b];
+    if (kp1 && kp2 && kp1.score > 0.4 && kp2.score > 0.4) {
+      ctx.beginPath();
+      ctx.moveTo(kp1.x, kp1.y);
+      ctx.lineTo(kp2.x, kp2.y);
+      ctx.stroke();
+    }
+  });
+  ctx.setLineDash([]); // 원래대로 복구
+}
+
+// 키포인트 정규화
 export function normalizeKeypoints(keypoints) {
-  const by = {};
-  keypoints.forEach(k => (by[k.name] = k));
+  const xs = keypoints.map(kp => kp.x);
+  const ys = keypoints.map(kp => kp.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
+  const scaleX = maxX - minX;
+  const scaleY = maxY - minY;
 
-  const LHIP = by["left_hip"], RHIP = by["right_hip"], LSH = by["left_shoulder"], RSH = by["right_shoulder"];
-  if (!LHIP || !RHIP || !LSH || !RSH) return null;
+  return keypoints.map(kp => {
+    return {
+      x: (kp.x - minX) / (scaleX || 1),
+      y: (kp.y - minY) / (scaleY || 1),
+      score: kp.score
+    };
+  });
+}
 
-  const xy = {};
-  for (const n in by) {
-    const p = by[n];
-    xy[n] = (p && p.score != null && p.score >= 0.5) ? { x: p.x, y: p.y } : { x: NaN, y: NaN };
-  }
+// 두 포즈의 유사도 계산 (코사인 유사도)
+export function computeSimilarity(vec1, vec2) {
+  if (!vec1 || !vec2 || vec1.length !== vec2.length) return 0;
 
-  const pelvis = { x: (LHIP.x + RHIP.x) / 2, y: (LHIP.y + RHIP.y) / 2 };
-  const hipDist = Math.hypot(LHIP.x - RHIP.x, LHIP.y - RHIP.y);
-  const shDist  = Math.hypot(LSH.x - RSH.x, LSH.y - RSH.y);
-  const scale = (hipDist + shDist) / 2 || 1.0;
-
-  const ids = [
-    "nose","left_eye","right_eye","left_shoulder","right_shoulder","left_elbow","right_elbow",
-    "left_wrist","right_wrist","left_hip","right_hip","left_knee","right_knee","left_ankle","right_ankle"
-  ];
-
-  const vec = [];
-  for (const n of ids) {
-    const p = xy[n];
-    if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) {
-      vec.push(0, 0);
-    } else {
-      vec.push((p.x - pelvis.x) / scale, (p.y - pelvis.y) / scale);
+  let dot = 0, norm1 = 0, norm2 = 0;
+  for (let i = 0; i < vec1.length; i++) {
+    if (vec1[i].score > 0.4 && vec2[i].score > 0.4) {
+      dot += vec1[i].x * vec2[i].x + vec1[i].y * vec2[i].y;
+      norm1 += vec1[i].x * vec1[i].x + vec1[i].y * vec1[i].y;
+      norm2 += vec2[i].x * vec2[i].x + vec2[i].y * vec2[i].y;
     }
   }
-  return vec;
-}
-
-export function computeSimilarity(a, b) {
-  if (!a || !b) return 0;
-  let dot = 0, na = 0, nb = 0;
-  const n = Math.min(a.length, b.length);
-  for (let i = 0; i < n; i++) {
-    dot += a[i] * b[i];
-    na  += a[i] * a[i];
-    nb  += b[i] * b[i];
-  }
-  const denom = (Math.sqrt(na) * Math.sqrt(nb)) || 1e-6;
-  const cos = dot / denom;
-  return (Math.max(-1, Math.min(1, cos)) + 1) / 2;
-}
-
-export function drawSkeleton(kps, ctx) {
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = "rgba(239,68,68,.9)";
-  ctx.fillStyle   = "rgba(239,68,68,.9)";
-
-  const by = {};
-  kps.forEach(k => (by[k.name] = k));
-
-  const pairs = [
-    ["left_shoulder","right_shoulder"],["left_shoulder","left_elbow"],["left_elbow","left_wrist"],
-    ["right_shoulder","right_elbow"],["right_elbow","right_wrist"],["left_shoulder","left_hip"],
-    ["right_shoulder","right_hip"],["left_hip","right_hip"],["left_hip","left_knee"],
-    ["left_knee","left_ankle"],["right_hip","right_knee"],["right_knee","right_ankle"]
-  ];
-
-  ctx.beginPath();
-  pairs.forEach(([a,b]) => {
-    const pa = by[a], pb = by[b];
-    if (!pa || !pb) return;
-    ctx.moveTo(pa.x, pa.y);
-    ctx.lineTo(pb.x, pb.y);
-  });
-  ctx.stroke();
-
-  kps.forEach(k => {
-    if (!k) return;
-    ctx.beginPath();
-    ctx.arc(k.x, k.y, 4, 0, Math.PI * 2);
-    ctx.fill();
-  });
+  if (norm1 === 0 || norm2 === 0) return 0;
+  return dot / (Math.sqrt(norm1) * Math.sqrt(norm2));
 }
