@@ -3,6 +3,7 @@ export async function showLoadingOverlay() {
   if (overlay) overlay.style.display = "flex";
   if (window.CamGuide) window.CamGuide.hide();   // 🔥 로딩 중에는 가이드 숨김
 }
+
 export function hideLoadingOverlay() {
   const overlay = document.getElementById("loadingOverlay");
   if (overlay) overlay.style.display = "none";
@@ -35,6 +36,9 @@ export async function showEndOverlay(attemptNum, bestAcc) {
     const overlay = document.getElementById("endOverlay");
     const textEl = document.getElementById("endText");
     if (!overlay || !textEl) return resolve();
+
+    // 🔥 종료 오버레이가 뜰 때도 가이드 숨기기
+    if (window.CamGuide) window.CamGuide.hide();
 
     overlay.style.display = "flex";
     textEl.textContent = "종료!";
