@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>10-second Challenge - Play</title>
+  <link rel="stylesheet" href="/static/css/play.css"/>
+  <link rel="icon" href="/static/images/favicon.ico" type="image/x-icon"/>
+
+  <!-- TensorFlow.js & PoseDetection -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.19.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection"></script>
+
+  <!-- 엔트리포인트 -->
+  <script type="module" src="/static/js/play_main.js"></script>
+</head>
+<body>
+  <!-- 로딩 오버레이 -->
+  <div id="loadingOverlay" aria-hidden="false">
+    <div id="loadingText">로딩중...</div>
+  </div>
+
+  <!-- 라운드 전환 오버레이 -->
+  <div id="roundOverlay" aria-hidden="true" style="display:none;">
+    <div id="roundText"></div>
+  </div>
+
+  <!-- 종료 오버레이 -->
+  <div id="endOverlay" aria-hidden="true" style="display:none;">
+    <div id="endText">종료!</div>
+  </div>
+
+  <div class="container">
+    <div class="content">
+      <!-- 왼쪽 박스 -->
+      <div class="left-box">
+        <div id="countdown"><span id="countdownValue">10</span></div>
+        <div class="webcam-wrapper">
+          <video id="webcam" autoplay playsinline></video>
+          <canvas id="overlay"></canvas>
+        </div>
+      </div>
+
+      <!-- 오른쪽 박스 -->
+      <div class="right-box">
+        <div class="target-image-wrapper">
+          <img id="targetImage" src="" alt="Target Pose"/>
+        </div>
+        <div class="accuracy-box">
+          <p>현재 정확도: <span id="accuracyNow">0%</span></p>
+          <p>최고 정확도: <span id="accuracyBest">0%</span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="/static/js/play_utils.js"></script>
+  <script src="/static/js/play_render.js"></script>
+  <!-- <script src="/static/js/play_target_skeleton.js?v=1"></script> -->
+  <script src="/static/js/play_cam_guide.js?v=1"></script>
+</body>
+</html>

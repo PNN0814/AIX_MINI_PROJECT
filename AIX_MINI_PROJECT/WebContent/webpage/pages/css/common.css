@@ -1,0 +1,47 @@
+/* -------------------------
+   공통 스타일
+------------------------- */
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #000000;
+    color: white;
+}
+
+/* 콘텐츠 영역 */
+.container {
+    max-width: 1600px;   /* 최대 너비 */
+    margin: 0 auto;      /* 가운데 정렬 */
+    padding: 0 20px;     /* 좌우 여백 */
+}
+
+/* 버튼 기본 스타일 */
+button {
+    flex: 1;                   /* wrapper 안에서 가득 채움 */
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 15px 0;
+    text-align: center;
+    background-color: #ff6d24;
+    color: white;
+    font-weight: bold;
+    font-size: 18px;
+    border: none;
+}
+
+button:hover {
+    background-color: #c34e18;
+}
+
+/* 모바일 대응 */
+@media screen and (max-width: 480px) {
+    button {
+        font-size: 16px;
+        padding: 10px 0;
+    }
+
+    .center-container img {
+        max-width: 300px;
+    }
+}
