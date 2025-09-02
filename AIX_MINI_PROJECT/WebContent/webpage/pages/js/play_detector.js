@@ -1,39 +1,46 @@
-import { normalizeKeypoints } from "./play_utils.js";
-
 let detector = null;
 
-export async function initDetector() {
-  await tf.setBackend("webgl");
-  await tf.ready();
-  detector = await poseDetection.createDetector(
-    poseDetection.SupportedModels.MoveNet,
-    { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
-  );
-}
-
-// 이미지 먼저 보여주기
-export async function pickRandomTarget(targetImgEl, pool) {
-  return new Promise(resolve => {
-    const url = pool[Math.floor(Math.random() * pool.length)];
-    targetImgEl.onload = () => resolve(url);
-    targetImgEl.onerror = () => resolve(null);
-    targetImgEl.src = url;
-  });
-}
-
-// 포즈 키포인트 감지 (느려도 OK)
-export async function detectTargetKey(targetImgEl) {
-  if (!detector) return null;
-  const tempCanvas = document.createElement("canvas");
-  const tctx = tempCanvas.getContext("2d");
-  tempCanvas.width = targetImgEl.naturalWidth || targetImgEl.width;
-  tempCanvas.height = targetImgEl.naturalHeight || targetImgEl.height;
-  tctx.drawImage(targetImgEl, 0, 0);
-
-  const poses = await detector.estimatePoses(tempCanvas, { flipHorizontal: false });
-  return poses?.[0]?.keypoints ? normalizeKeypoints(poses[0].keypoints) : null;
-}
-
+// ✅ detector 반환용 함수
 export function getDetector() {
   return detector;
+}
+
+// 초기화 함수
+export async function initDetector() {
+  if (detector) return detector;
+
+  try {
+    detector = await poseDetection.createDetector(
+      poseDetection.SupportedModels.MoveNet,
+      {
+        modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
+        runtime: "tfjs"
+      }
+    );
+    console.log("[poseDetection] MoveNet detector initialized");
+  } catch (err) {
+    console.error("[poseDetection] init failed:", err);
+    throw err;
+  }
+
+  return detector;
+}
+
+// 타겟 이미지에서 키포인트 감지
+export async function detectTargetKey(targetImgEl) {
+  if (!detector) {
+    await initDetector();
+  }
+
+  try {
+    const poses = await detector.estimatePoses(targetImgEl);
+    if (poses && poses.length > 0) {
+      console.log("[poseDetection] target keypoints detected:", poses[0].keypoints);
+      return poses[0].keypoints;
+    }
+  } catch (err) {
+    console.error("[poseDetection] detectTargetKey error:", err);
+  }
+
+  return null;
 }
