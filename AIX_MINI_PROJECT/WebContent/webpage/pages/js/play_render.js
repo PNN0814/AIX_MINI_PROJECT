@@ -1,5 +1,10 @@
-import * as utils from "./play_utils.js";
 import { getDetector } from "./play_detector.js";
+import {
+  drawMySkeleton,
+  drawGuideSkeleton,
+  normalizeKeypoints,
+  computeSimilarity
+} from "./play_utils.js";
 
 let latestPose = null;
 let renderRaf = null;
@@ -18,11 +23,22 @@ export function startEstimationPump(videoEl, fps = 12) {
       try {
         const poses = await detector.estimatePoses(videoEl, { flipHorizontal: false });
         latestPose = (poses && poses[0]) || null;
-      } finally { estimating = false; }
+      } finally {
+        estimating = false;
+      }
     }
     estimateTimerId = setTimeout(pump, interval);
   }
   pump();
+}
+
+export function stopEstimationPump() {
+  estimateStop = true;
+  if (estimateTimerId) clearTimeout(estimateTimerId);
+}
+
+export function getLatestPose() {
+  return latestPose;
 }
 
 export function startRenderLoop(canvasEl, ctx, targetKeyRef, bestAccRef, allowAccRef) {
@@ -33,13 +49,19 @@ export function startRenderLoop(canvasEl, ctx, targetKeyRef, bestAccRef, allowAc
   function render() {
     if (ctx && canvasEl) ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
 
-    if (latestPose && ctx) {
-      const kp = latestPose.keypoints;
-      utils.drawSkeleton(kp, ctx);
+    // 🔹 타겟 스켈레톤 (가이드: 시안 점선)
+    if (targetKeyRef.value) {
+      drawGuideSkeleton(targetKeyRef.value, ctx);
+    }
 
+    // 🔹 내 스켈레톤 (빨간 점 + 라임색 선)
+    if (latestPose && latestPose.keypoints && ctx) {
+      drawMySkeleton(latestPose.keypoints, ctx);
+
+      // 정확도 계산
       if (targetKeyRef.value && allowAccRef.value) {
-        const vec = utils.normalizeKeypoints(kp);
-        const sim = utils.computeSimilarity(vec, targetKeyRef.value);
+        const vec = normalizeKeypoints(latestPose.keypoints);
+        const sim = computeSimilarity(vec, targetKeyRef.value);
         const percent = Math.round(sim * 100);
 
         sims.push(sim);
@@ -55,4 +77,8 @@ export function startRenderLoop(canvasEl, ctx, targetKeyRef, bestAccRef, allowAc
     renderRaf = requestAnimationFrame(render);
   }
   render();
+}
+
+export function stopRenderLoop() {
+  if (renderRaf) cancelAnimationFrame(renderRaf);
 }
