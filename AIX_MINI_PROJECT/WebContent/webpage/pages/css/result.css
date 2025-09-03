@@ -1,218 +1,83 @@
-* {margin:0; padding:0; box-sizing:border-box;}
-
-body {
-    background: linear-gradient(135deg, #2c2c2c, #1a1a1a); 
-    font-family: 'Arial', sans-serif; 
-    margin: 0;
-    padding: 0;
-    width: 100vw; 
-    height: 100vh; 
-    display: flex; 
-    justify-content: center; 
-    align-items: center;
-    overflow: hidden;
+/* 최종 결과 제목 */
+.result-title {
+  font-size: 26px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  text-align: center;
 }
 
-.container {
-    background-color: #3dd5c0; 
-    border-radius: 25px; 
-    padding: 40px; 
-    box-shadow: 0 15px 35px rgba(0,0,0,0.3); 
-    position: relative; 
-    width: 1600px; 
-    height: 900px;
-    display: flex;
-    flex-direction: column;
+/* 전체 컨텐츠 영역 */
+.result-content {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 50px;              /* ✅ 좌/우 블록 간격 정확히 50px */
+  margin-bottom: 40px;
+  flex-wrap: nowrap;
+  overflow-x: hidden;
+  overflow-y: hidden;
 }
 
-.header {
-    background: linear-gradient(45deg, #f4d3ae, #f7e2a9); 
-    color: #333; 
-    text-align: center; 
-    padding: 20px 40px; 
-    border-radius: 30px; 
-    font-size: 2.2em; 
-    font-weight: bold; 
-    margin-bottom: 40px; 
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2); 
-    position: relative;
+/* 왼쪽 / 오른쪽 영역 */
+.result-left, .result-right {
+  flex: 0 0 auto;          /* ✅ 블록 크기 자동 확장 방지 */
+  width: auto;             /* ✅ 콘텐츠 크기에 맞게만 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
 }
 
-.header::before, .header::after {
-    content: '❤️'; 
-    position: absolute; 
-    top: 50%; 
-    transform: translateY(-50%); 
-    font-size: 1.2em;
+/* 캡션 + 미디어 묶음 */
+.media-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.header::before {left: 20px;} 
-.header::after {right: 20px;}
-
-.main-content {
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    gap: 30px; 
-    flex: 1;
-    position: relative;
+.media-caption {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 10px;
 }
 
-.arrow-button {
-    background: linear-gradient(45deg, #ff6d24, #c34e18); 
-    border: none; 
-    color: white; 
-    font-size: 4.5em; 
-    cursor: pointer; 
-    padding: 20px 15px; 
-    border-radius: 15px; 
-    box-shadow: 0 8px 20px rgba(0,0,0,0.3); 
-    transition: all 0.3s ease; 
-    min-width: 80px; 
-    height: fit-content;
+/* 공통 미디어 크기 */
+.result-media {
+  width: 400px;            /* ✅ 사진/영상 크기 고정 */
+  height: auto;            /* ✅ 비율 유지 */
+  border: 2px solid #fff;
+  border-radius: 8px;
+  display: block;
 }
 
-.arrow-button:hover {
-    transform: scale(1.05); 
-    box-shadow: 0 12px 25px rgba(0,0,0,0.4);
+/* 정확도 박스 */
+.accuracy-box {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
 }
 
-.arrow-button:active {transform: scale(0.95);}
-
-.center-content {
-    display: flex; 
-    gap: 40px; 
-    align-items: flex-start; 
-    flex: 1; 
-    justify-content: center;
-    height: 100%;
+/* 버튼 */
+.button-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;             /* 버튼은 미디어 폭에 맞게 */
 }
 
-.left-column, .right-column {
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    gap: 25px;
-    height: 100%;
-    justify-content: flex-start;
+.button-wrapper button {
+  padding: 10px 20px;
+  font-size: 16px;
 }
 
-.image-box, .gif-box {
-    width: 400px; 
-    height: 225px; 
-    border-radius: 15px; 
-    overflow: hidden; 
-    box-shadow: 0 8px 20px rgba(0,0,0,0.3); 
-    display: flex; 
-    justify-content: center; 
-    align-items: center; 
-    background: #f0f0f0;
+/* 최하단 (재도전 버튼은 오른쪽 블록에 포함됨) */
+.result-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
 }
 
-.image-box img, .gif-box img {
-    width: 100%; 
-    height: 100%; 
-    object-fit: cover;
-}
-
-.accuracy-container {
-    color: white; 
-    font-size: 1.6em; 
-    font-weight: bold; 
-    margin-top: 15px;
-}
-
-.accuracy-item {
-    display: flex; 
-    align-items: center; 
-    margin-bottom: 12px;
-}
-
-.accuracy-item .check {
-    color: #4CAF50; 
-    font-size: 1.4em; 
-    margin-right: 15px;
-}
-
-.download-button {
-    background: linear-gradient(45deg, #ff6d24, #c34e18); 
-    color: white; 
-    border: none; 
-    padding: 18px 30px; 
-    border-radius: 25px; 
-    font-size: 1.4em; 
-    font-weight: bold; 
-    cursor: pointer; 
-    box-shadow: 0 6px 15px rgba(0,0,0,0.2); 
-    display: flex; 
-    align-items: center; 
-    gap: 10px; 
-    text-decoration: none;
-    margin-top: 20px;
-}
-
-.download-button:hover {
-    transform: scale(1.05);
-}
-
-.retry-button {
-    background: linear-gradient(45deg, #ff6d24, #c34e18); 
-    color: white; 
-    border: none; 
-    padding: 18px 40px; 
-    border-radius: 20px; 
-    font-size: 1.4em; 
-    font-weight: bold; 
-    cursor: pointer; 
-    box-shadow: 0 8px 20px rgba(0,0,0,0.3); 
-    text-decoration: none;
-    position: absolute;
-    bottom: 30px;
-    right: 30px;
-}
-
-.retry-button:hover {transform: scale(1.05);}
-
-/* 모바일 대응 */
-@media screen and (max-width: 768px) {
-    .container {
-        width: 95%;
-        height: auto;
-        padding: 20px;
-    }
-    
-    .header {
-        font-size: 1.8em;
-        padding: 15px 20px;
-    }
-    
-    .main-content {
-        flex-direction: column;
-        gap: 20px;
-    }
-    
-    .center-content {
-        flex-direction: column;
-        gap: 20px;
-    }
-    
-    .image-box, .gif-box {
-        width: 300px;
-        height: 169px;
-    }
-    
-    .arrow-button {
-        font-size: 3em;
-        padding: 15px 10px;
-    }
-    
-    .retry-button {
-        position: static;
-        margin-top: 20px;
-        align-self: center;
-    }
-    
-    .accuracy-container {
-        font-size: 1.2em;
-    }
+.result-footer button {
+  padding: 10px 20px;
+  font-size: 16px;
 }
