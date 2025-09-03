@@ -10,14 +10,13 @@ import {
 import { initCameraWithFallback, resizeCanvasToVideo } from "./play_camera.js";
 import { initDetector, detectTargetKey } from "./play_detector.js";
 import { startEstimationPump, startRenderLoop } from "./play_render.js";
+import "./play_target_skeleton.js";   // ✅ 타겟 이미지 키포인트 추출 활성화
 
 let targetKey = { value: null };
 let bestAcc = { value: 0 };
-let allowAccuracyUpdate = { value: false };
 
 let players = 1;
 let usedImages = new Set();
-let latestPose = null;
 
 // ----------------------------
 // 녹화 관련
@@ -103,29 +102,27 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   await fetch("/end", { method: "POST" });
 
+  // ✅ 진입 즉시 로딩
+  await showLoadingOverlay();
+
   await pickRandomTarget(targetImgEl, players);
 
-  await showLoadingOverlay();
   await initCameraWithFallback(videoEl);
   resizeCanvasToVideo(canvasEl, videoEl);
 
   await initDetector();
+
+  startEstimationPump(videoEl, 12);
+  startRenderLoop(canvasEl, ctx, targetKey, bestAcc);
+
   hideLoadingOverlay();
-
-  startEstimationPump(videoEl, 12, pose => { latestPose = pose; });
-  startRenderLoop(canvasEl, ctx, targetKey, bestAcc, allowAccuracyUpdate, () => latestPose);
-
-  runRound(1, photosCount, attemptNum, videoEl, targetImgEl);
+  await runRound(1, photosCount, attemptNum, videoEl, targetImgEl);
 });
 
 // ----------------------------
 // 라운드
 // ----------------------------
 async function runRound(roundIdx, photosCount, attemptNum, videoEl, targetImgEl) {
-  document.getElementById("accuracyNow").textContent = "0%";
-  document.getElementById("accuracyBest").textContent = "0%";
-  allowAccuracyUpdate.value = false;
-
   if (roundIdx > 1) {
     await pickRandomTarget(targetImgEl, players);
     targetKey.value = await detectTargetKey(targetImgEl);
@@ -136,10 +133,8 @@ async function runRound(roundIdx, photosCount, attemptNum, videoEl, targetImgEl)
   await showRoundOverlay(roundIdx);
 
   if (roundIdx === 1) {
-    startWebcamRecording(videoEl); // 1번째 준비부터 녹화
+    startWebcamRecording(videoEl);
   }
-
-  allowAccuracyUpdate.value = true;
 
   startCountdown(
     10,
@@ -148,7 +143,6 @@ async function runRound(roundIdx, photosCount, attemptNum, videoEl, targetImgEl)
       await captureFrame(videoEl, false, roundIdx);
 
       if (roundIdx >= photosCount) {
-        allowAccuracyUpdate.value = false;
         await showEndOverlay(attemptNum, bestAcc);
       } else {
         runRound(roundIdx + 1, photosCount, attemptNum, videoEl, targetImgEl);
@@ -187,10 +181,6 @@ async function captureFrame(videoEl, withSkeleton, roundIdx) {
 
   ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
 
-  if (withSkeleton && latestPose?.keypoints) {
-    drawSkeleton(latestPose.keypoints, ctx);
-  }
-
   const dataUrl = canvas.toDataURL("image/jpeg");
 
   try {
@@ -225,47 +215,13 @@ async function pickRandomTarget(targetImgEl, players) {
   const url = `/static/result_images/matching/${players}/${randomIdx}.jpg`;
 
   return new Promise(resolve => {
-    targetImgEl.onload = () => {
+    targetImgEl.onload = async () => {
       targetImgEl.removeAttribute("data-target-key");
       window.targetKey = null;
+      targetKey.value = await detectTargetKey(targetImgEl);
       resolve(url);
     };
     targetImgEl.onerror = () => resolve(null);
     targetImgEl.src = url;
-  });
-}
-
-// ----------------------------
-// 스켈레톤 캡처용 함수 (로컬만)
-// ----------------------------
-function drawSkeleton(keypoints, ctx) {
-  const CONNECTED_KEYPOINTS = [
-    [0,1],[1,3],[0,2],[2,4],
-    [5,7],[7,9],[6,8],[8,10],
-    [5,6],[5,11],[6,12],
-    [11,12],[11,13],[13,15],[12,14],[14,16]
-  ];
-
-  ctx.strokeStyle = "lime";
-  ctx.lineWidth = 2;
-
-  keypoints.forEach(kp => {
-    if (kp.score > 0.4) {
-      ctx.beginPath();
-      ctx.arc(kp.x, kp.y, 4, 0, 2 * Math.PI);
-      ctx.fillStyle = "red";
-      ctx.fill();
-    }
-  });
-
-  CONNECTED_KEYPOINTS.forEach(([a, b]) => {
-    const kp1 = keypoints[a];
-    const kp2 = keypoints[b];
-    if (kp1.score > 0.4 && kp2.score > 0.4) {
-      ctx.beginPath();
-      ctx.moveTo(kp1.x, kp1.y);
-      ctx.lineTo(kp2.x, kp2.y);
-      ctx.stroke();
-    }
   });
 }
