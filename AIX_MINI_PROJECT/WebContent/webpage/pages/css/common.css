@@ -1,47 +1,66 @@
-/* -------------------------
-   공통 스타일
-------------------------- */
+/* ===============================
+   전체 공통 스타일
+================================= */
+
+/* 전체 배경 */
 body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background-color: #000000;
-    color: white;
+  margin: 0;
+  padding: 0;
+  background: url("/static/images/common/background.jpg") no-repeat center center fixed;
+  background-size: cover;   /* 화면 크기에 꽉 채우기 */
+  color: #fff;
+  font-family: Arial, sans-serif;
 }
 
-/* 콘텐츠 영역 */
+/* 컨테이너 중앙 정렬 */
 .container {
-    max-width: 1600px;   /* 최대 너비 */
-    margin: 0 auto;      /* 가운데 정렬 */
-    padding: 0 20px;     /* 좌우 여백 */
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 20px;
+  text-align: center;
 }
 
-/* 버튼 기본 스타일 */
+/* 중앙에 컨텐츠 배치 */
+.center-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 버튼 공통 스타일 */
 button {
-    flex: 1;                   /* wrapper 안에서 가득 채움 */
-    font-family: inherit;
-    cursor: pointer;
-    border-radius: 6px;
-    padding: 15px 0;
-    text-align: center;
-    background-color: #ff6d24;
-    color: white;
-    font-weight: bold;
-    font-size: 18px;
-    border: none;
+  background-color: #ff6600;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
 }
 
 button:hover {
-    background-color: #c34e18;
+  background-color: #e65500;
 }
 
-/* 모바일 대응 */
-@media screen and (max-width: 480px) {
-    button {
-        font-size: 16px;
-        padding: 10px 0;
-    }
+/* 링크 초기화 */
+a {
+  color: inherit;
+  text-decoration: none;
+}
 
-    .center-container img {
-        max-width: 300px;
-    }
+/* 기본 제목 스타일 */
+h1, h2, h3 {
+  margin: 10px 0;
+  font-weight: bold;
+}
+
+/* 이미지 반응형 */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 8px;
 }
