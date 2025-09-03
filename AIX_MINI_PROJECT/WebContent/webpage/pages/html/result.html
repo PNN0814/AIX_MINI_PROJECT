@@ -1,59 +1,49 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>10-second Challenge - 결과</title>
-  <link rel="stylesheet" href="/static/css/play.css"/>
-  <link rel="icon" href="/static/images/favicon.ico" type="image/x-icon"/>
-  <style>
-    body {
-      background-color: #000;
-      color: #fff;
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 0;
-      padding: 0;
-    }
-    .result-container {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-    }
-    h1 {
-      font-size: clamp(2rem, 5vw, 3rem);
-      margin-bottom: 20px;
-    }
-    p {
-      font-size: clamp(1.5rem, 3vw, 2rem);
-      margin: 10px 0;
-    }
-    .btn {
-      display: inline-block;
-      margin-top: 30px;
-      padding: 12px 24px;
-      font-size: 1.2rem;
-      font-weight: bold;
-      border-radius: 8px;
-      background: #2563eb;
-      color: white;
-      text-decoration: none;
-      transition: background 0.2s ease;
-    }
-    .btn:hover {
-      background: #1d4ed8;
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>결과 화면</title>
+  <link rel="stylesheet" href="/static/css/result.css">
+  <link rel="icon" href="/static/images/favicon.ico" type="image/x-icon">
 </head>
 <body>
-  <div class="result-container">
-    <h1>도전 결과</h1>
-    <p><strong>{{ attempt }}</strong>번째 도전!</p>
-    <p>최고 정확도: <strong>{{ accuracy }}%</strong></p>
-    <a href="/" class="btn">메인으로 돌아가기</a>
-    <a href="/play?n={{ attempt + 1 }}&photos=1&players=1" class="btn">다시 도전하기</a>
+<div class="container">
+  <div class="header">최종 결과</div>
+  <div class="main-content">
+    <button class="arrow-button arrow-left" onclick="previousResult()" id="prevBtn">‹</button>
+    <div class="center-content">
+      <div class="left-column">
+        <div class="image-box user-capture">
+          <img src="" alt="사용자 캡처" id="userImage">
+        </div>
+        <div class="accuracy-container">
+          <div class="accuracy-item">
+            <span class="check">✓</span>정확도 <span id="currentAccuracy">{{ accuracy }}%</span>
+          </div>
+          <div class="accuracy-item">
+            <span class="check">✓</span>최고 정확도 <span id="bestAccuracy">{{ accuracy }}%</span>
+          </div>
+        </div>
+      </div>
+      <div class="right-column">
+        <div class="gif-box user-motion">
+          <video id="recordedVideo" autoplay loop muted>
+            <source src="" type="video/mp4">
+            비디오를 재생할 수 없습니다.
+          </video>
+        </div>
+        <div class="image-box mission-example">
+          <img src="" alt="미션 예시" id="targetImage">
+        </div>
+        <a href="#" class="download-button" id="downloadBtn">📥 영상 다운로드</a>
+      </div>
+    </div>
+    <button class="arrow-button arrow-right" onclick="nextResult()" id="nextBtn">›</button>
   </div>
+  <a href="/setting" class="retry-button">재도전</a>
+</div>
+
+<script src="/static/js/result.js"></script>
 </body>
 </html>
