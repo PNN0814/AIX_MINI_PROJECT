@@ -1,0 +1,218 @@
+* {margin:0; padding:0; box-sizing:border-box;}
+
+body {
+    background: linear-gradient(135deg, #2c2c2c, #1a1a1a); 
+    font-family: 'Arial', sans-serif; 
+    margin: 0;
+    padding: 0;
+    width: 100vw; 
+    height: 100vh; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
+    overflow: hidden;
+}
+
+.container {
+    background-color: #3dd5c0; 
+    border-radius: 25px; 
+    padding: 40px; 
+    box-shadow: 0 15px 35px rgba(0,0,0,0.3); 
+    position: relative; 
+    width: 1600px; 
+    height: 900px;
+    display: flex;
+    flex-direction: column;
+}
+
+.header {
+    background: linear-gradient(45deg, #f4d3ae, #f7e2a9); 
+    color: #333; 
+    text-align: center; 
+    padding: 20px 40px; 
+    border-radius: 30px; 
+    font-size: 2.2em; 
+    font-weight: bold; 
+    margin-bottom: 40px; 
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2); 
+    position: relative;
+}
+
+.header::before, .header::after {
+    content: '❤️'; 
+    position: absolute; 
+    top: 50%; 
+    transform: translateY(-50%); 
+    font-size: 1.2em;
+}
+
+.header::before {left: 20px;} 
+.header::after {right: 20px;}
+
+.main-content {
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    gap: 30px; 
+    flex: 1;
+    position: relative;
+}
+
+.arrow-button {
+    background: linear-gradient(45deg, #ff6d24, #c34e18); 
+    border: none; 
+    color: white; 
+    font-size: 4.5em; 
+    cursor: pointer; 
+    padding: 20px 15px; 
+    border-radius: 15px; 
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3); 
+    transition: all 0.3s ease; 
+    min-width: 80px; 
+    height: fit-content;
+}
+
+.arrow-button:hover {
+    transform: scale(1.05); 
+    box-shadow: 0 12px 25px rgba(0,0,0,0.4);
+}
+
+.arrow-button:active {transform: scale(0.95);}
+
+.center-content {
+    display: flex; 
+    gap: 40px; 
+    align-items: flex-start; 
+    flex: 1; 
+    justify-content: center;
+    height: 100%;
+}
+
+.left-column, .right-column {
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    gap: 25px;
+    height: 100%;
+    justify-content: flex-start;
+}
+
+.image-box, .gif-box {
+    width: 400px; 
+    height: 225px; 
+    border-radius: 15px; 
+    overflow: hidden; 
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3); 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    background: #f0f0f0;
+}
+
+.image-box img, .gif-box img {
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover;
+}
+
+.accuracy-container {
+    color: white; 
+    font-size: 1.6em; 
+    font-weight: bold; 
+    margin-top: 15px;
+}
+
+.accuracy-item {
+    display: flex; 
+    align-items: center; 
+    margin-bottom: 12px;
+}
+
+.accuracy-item .check {
+    color: #4CAF50; 
+    font-size: 1.4em; 
+    margin-right: 15px;
+}
+
+.download-button {
+    background: linear-gradient(45deg, #ff6d24, #c34e18); 
+    color: white; 
+    border: none; 
+    padding: 18px 30px; 
+    border-radius: 25px; 
+    font-size: 1.4em; 
+    font-weight: bold; 
+    cursor: pointer; 
+    box-shadow: 0 6px 15px rgba(0,0,0,0.2); 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+    text-decoration: none;
+    margin-top: 20px;
+}
+
+.download-button:hover {
+    transform: scale(1.05);
+}
+
+.retry-button {
+    background: linear-gradient(45deg, #ff6d24, #c34e18); 
+    color: white; 
+    border: none; 
+    padding: 18px 40px; 
+    border-radius: 20px; 
+    font-size: 1.4em; 
+    font-weight: bold; 
+    cursor: pointer; 
+    box-shadow: 0 8px 20px rgba(0,0,0,0.3); 
+    text-decoration: none;
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+}
+
+.retry-button:hover {transform: scale(1.05);}
+
+/* 모바일 대응 */
+@media screen and (max-width: 768px) {
+    .container {
+        width: 95%;
+        height: auto;
+        padding: 20px;
+    }
+    
+    .header {
+        font-size: 1.8em;
+        padding: 15px 20px;
+    }
+    
+    .main-content {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .center-content {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .image-box, .gif-box {
+        width: 300px;
+        height: 169px;
+    }
+    
+    .arrow-button {
+        font-size: 3em;
+        padding: 15px 10px;
+    }
+    
+    .retry-button {
+        position: static;
+        margin-top: 20px;
+        align-self: center;
+    }
+    
+    .accuracy-container {
+        font-size: 1.2em;
+    }
+}
