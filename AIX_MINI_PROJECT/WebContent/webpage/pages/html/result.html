@@ -4,46 +4,52 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>결과 화면</title>
+  <link rel="stylesheet" href="/static/css/common.css">
   <link rel="stylesheet" href="/static/css/result.css">
   <link rel="icon" href="/static/images/favicon.ico" type="image/x-icon">
 </head>
 <body>
-<div class="container">
-  <div class="header">최종 결과</div>
-  <div class="main-content">
-    <button class="arrow-button arrow-left" onclick="previousResult()" id="prevBtn">‹</button>
-    <div class="center-content">
-      <div class="left-column">
-        <div class="image-box user-capture">
-          <img src="" alt="사용자 캡처" id="userImage">
-        </div>
-        <div class="accuracy-container">
-          <div class="accuracy-item">
-            <span class="check">✓</span>정확도 <span id="currentAccuracy">{{ accuracy }}%</span>
+  <div class="container">
+    <div class="center-container">
+      <h2 class="result-title">최종 결과</h2>
+
+      <div class="result-content">
+        <!-- 왼쪽 영역 -->
+        <div class="result-left">
+          <div class="media-block">
+            <div class="media-caption">캡처 사진</div>
+            <img src="" alt="사용자 캡처" id="userImage" class="result-media">
           </div>
-          <div class="accuracy-item">
-            <span class="check">✓</span>최고 정확도 <span id="bestAccuracy">{{ accuracy }}%</span>
+
+          <div class="media-block">
+            <div class="media-caption">촬영 영상</div>
+            <video id="recordedVideo" autoplay loop muted class="result-media">
+              <source src="" type="video/mp4">
+              비디오를 재생할 수 없습니다.
+            </video>
+            <div class="accuracy-box">
+              <p>정확도: <span id="currentAccuracy">{{ accuracy }}%</span> / 최고: <span id="bestAccuracy">{{ accuracy }}%</span></p>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="right-column">
-        <div class="gif-box user-motion">
-          <video id="recordedVideo" autoplay loop muted>
-            <source src="" type="video/mp4">
-            비디오를 재생할 수 없습니다.
-          </video>
+
+        <!-- 오른쪽 영역 -->
+        <div class="result-right">
+          <div class="media-block">
+            <div class="media-caption">비교 사진</div>
+            <img src="" alt="미션 예시" id="targetImage" class="result-media">
+          </div>
+
+          <div class="button-wrapper">
+            <button id="downloadBtn">📥 영상 다운로드</button>
+          </div>
+          <div class="button-wrapper">
+            <button onclick="location.href='/setting'">재도전</button>
+          </div>
         </div>
-        <div class="image-box mission-example">
-          <img src="" alt="미션 예시" id="targetImage">
-        </div>
-        <a href="#" class="download-button" id="downloadBtn">📥 영상 다운로드</a>
       </div>
     </div>
-    <button class="arrow-button arrow-right" onclick="nextResult()" id="nextBtn">›</button>
   </div>
-  <a href="/setting" class="retry-button">재도전</a>
-</div>
-
-<script src="/static/js/result.js"></script>
+  <script src="/static/js/result.js"></script>
 </body>
 </html>
