@@ -1,55 +1,62 @@
 <!DOCTYPE html>
 <html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>결과 화면</title>
-  <link rel="stylesheet" href="/static/css/common.css">
-  <link rel="stylesheet" href="/static/css/result.css">
-  <link rel="icon" href="/static/images/favicon.ico" type="image/x-icon">
-</head>
-<body>
-  <div class="container">
-    <div class="center-container">
-      <h2 class="result-title">최종 결과</h2>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>10-second Challenge</title>
+    <link rel="stylesheet" href="/static/css/common.css">
+    <link rel="stylesheet" href="/static/css/result.css">
+    <link rel="stylesheet" href="/static/css/music-player.css">
+    <link rel="icon" href="/static/images/favicon.ico" type="image/x-icon">
+  </head>
+  <body>
+    <div class="container">
+      <div class="center-container">
+        <h2 class="result-title">최종 결과</h2>
 
-      <div class="result-content">
-        <!-- 왼쪽 영역 -->
-        <div class="result-left">
-          <div class="media-block">
-            <div class="media-caption">캡처 사진</div>
-            <img src="" alt="사용자 캡처" id="userImage" class="result-media">
-          </div>
+        <div class="result-content">
+          <!-- 왼쪽 영역 -->
+          <div class="result-left">
+            <div class="media-block image-container">
+              <span id="prevBtn" class="nav-arrow left-arrow">⟨</span>
+              <div class="media-caption">캡처 사진</div>
+              <img src="" alt="사용자 캡처" id="userImage" class="result-media">
+            </div>
 
-          <div class="media-block">
-            <div class="media-caption">촬영 영상</div>
-            <video id="recordedVideo" autoplay loop muted class="result-media">
-              <source src="" type="video/mp4">
-              비디오를 재생할 수 없습니다.
-            </video>
-            <div class="accuracy-box">
-              <p>정확도: <span id="currentAccuracy">{{ accuracy }}%</span> / 최고: <span id="bestAccuracy">{{ accuracy }}%</span></p>
+            <div class="media-block">
+              <div class="media-caption">촬영 영상</div>
+              <video id="recordedVideo" autoplay loop muted class="result-media">
+                <source src="" type="video/mp4">비디오를 재생할 수 없습니다.</video>
+              <div class="accuracy-box">
+                <p>정확도: <span id="currentAccuracy">0%</span> / 최고: <span id="bestAccuracy">0%</span></p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- 오른쪽 영역 -->
-        <div class="result-right">
-          <div class="media-block">
-            <div class="media-caption">비교 사진</div>
-            <img src="" alt="미션 예시" id="targetImage" class="result-media">
-          </div>
+          <!-- 오른쪽 영역 -->
+          <div class="result-right">
+            <div class="media-block image-container">
+              <div class="media-caption">비교 사진</div>
+              <img src="" alt="미션 예시" id="targetImage" class="result-media">
+              <span id="nextBtn" class="nav-arrow right-arrow">⟩</span>
+            </div>
 
-          <div class="button-wrapper">
-            <button id="downloadBtn">📥 영상 다운로드</button>
-          </div>
-          <div class="button-wrapper">
-            <button onclick="location.href='/setting'">재도전</button>
+            <div class="result-buttons">
+              <div class="button-wrapper">
+                <button id="downloadBtn">📥 영상 다운로드</button>
+              </div>
+              <div class="button-wrapper">
+                <button onclick="location.href='/setting'">재도전</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-  <script src="/static/js/result.js"></script>
-</body>
+    <script>
+      window.resultData = JSON.parse('{{ data | tojson | safe }}');
+    </script>
+    <script src="/static/js/result.js"></script>
+    <script src="/static/js/music-player.js"></script>
+  </body>
 </html>
