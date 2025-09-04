@@ -1,4 +1,4 @@
-/* 최종 결과 제목 */
+/* 제목 */
 .result-title {
   font-size: 26px;
   font-weight: bold;
@@ -6,33 +6,30 @@
   text-align: center;
 }
 
-/* 전체 컨텐츠 영역 */
+/* 전체 컨텐츠 */
 .result-content {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  gap: 50px;              /* ✅ 좌/우 블록 간격 정확히 50px */
+  gap: 50px;
   margin-bottom: 40px;
   flex-wrap: nowrap;
-  overflow-x: hidden;
-  overflow-y: hidden;
 }
 
-/* 왼쪽 / 오른쪽 영역 */
+/* 좌/우 영역 */
 .result-left, .result-right {
-  flex: 0 0 auto;          /* ✅ 블록 크기 자동 확장 방지 */
-  width: auto;             /* ✅ 콘텐츠 크기에 맞게만 */
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 20px;
 }
 
-/* 캡션 + 미디어 묶음 */
+/* 블럭 */
 .media-block {
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
 }
 
 .media-caption {
@@ -41,13 +38,15 @@
   margin-bottom: 10px;
 }
 
-/* 공통 미디어 크기 */
+/* 공통 미디어 */
 .result-media {
-  width: 400px;            /* ✅ 사진/영상 크기 고정 */
-  height: auto;            /* ✅ 비율 유지 */
+  width: 400px;
+  height: 300px;
   border: 2px solid #fff;
   border-radius: 8px;
   display: block;
+  object-fit: contain;
+  background-color: #fff;
 }
 
 /* 정확도 박스 */
@@ -59,10 +58,17 @@
 }
 
 /* 버튼 */
+.result-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
 .button-wrapper {
   display: flex;
   justify-content: center;
-  width: 100%;             /* 버튼은 미디어 폭에 맞게 */
+  width: 100%;
 }
 
 .button-wrapper button {
@@ -70,14 +76,33 @@
   font-size: 16px;
 }
 
-/* 최하단 (재도전 버튼은 오른쪽 블록에 포함됨) */
-.result-footer {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
+/* 네비게이션 화살표 */
+.image-container {
+  position: relative;
 }
 
-.result-footer button {
-  padding: 10px 20px;
-  font-size: 16px;
+.nav-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 40px;
+  font-weight: bold;
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+  padding: 10px;
+  transition: color 0.2s;
+  z-index: 5;
+}
+
+.left-arrow {
+  left: -60px;   /* 캡처 사진 옆 */
+}
+
+.right-arrow {
+  right: -60px;  /* 비교 사진 옆 */
+}
+
+.nav-arrow:hover {
+  color: #ffcc00;
 }
