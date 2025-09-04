@@ -1,7 +1,7 @@
 from common import (
     FastAPI, Request, HTMLResponse, RedirectResponse, StaticFiles, Jinja2Templates,
     cv2, mp, Image, np, pd, os, json, shutil, time, datetime,
-    IMG_PC_DIR, IMG_RESULT_DIR
+    IMG_PC_DIR, IMG_RESULT_DIR, MUSIC_DIR, PAGES_HTML_DIR, PAGES_CSS_DIR, PAGES_JS_DIR
 )
 from fastapi.responses import FileResponse
 from fastapi import UploadFile, File
@@ -12,12 +12,13 @@ app = FastAPI()
 # -------------------------
 # 정적 파일 라우팅
 # -------------------------
-app.mount("/static/css", StaticFiles(directory="pages/css"), name="css")
-app.mount("/static/js", StaticFiles(directory="pages/js"), name="js")
+app.mount("/static/css", StaticFiles(directory=PAGES_CSS_DIR), name="css")
+app.mount("/static/js", StaticFiles(directory=PAGES_JS_DIR), name="js")
 app.mount("/static/images", StaticFiles(directory=IMG_PC_DIR), name="images")
 app.mount("/static/result_images", StaticFiles(directory=IMG_RESULT_DIR), name="result_images")
+app.mount("/static/music", StaticFiles(directory=MUSIC_DIR), name="music")
 
-templates = Jinja2Templates(directory="pages/html")
+templates = Jinja2Templates(directory=PAGES_HTML_DIR)
 
 # -------------------------
 # favicon
@@ -44,21 +45,47 @@ async def get_setting(request: Request):
 async def get_play(request: Request):
     return templates.TemplateResponse("play.html", {"request": request})
 
+# -------------------------
+# 결과 데이터 보관소
+# -------------------------
+result_store = {}
+
+@app.post("/result_redirect")
+async def result_redirect(request: Request):
+    data = await request.json()
+    today = data.get("date")
+    folder = data.get("folder")
+
+    # ✅ video 제거, images_nm은 파일명만 들어옴
+    result_store["latest"] = {
+        "date": today,
+        "folder": folder,
+        "player": data.get("player"),
+        "max_image": data.get("max_image"),
+        "images_nm": data.get("images_nm", []),
+        "images_ac": data.get("images_ac", []),
+        "best_ac": data.get("best_ac", 0),
+        "targets": data.get("targets", [])
+    }
+
+    # ✅ 다음 게임을 위해 캡처 세션 초기화
+    if "capture_session" in result_store:
+        del result_store["capture_session"]
+    if "capture_count" in result_store:
+        del result_store["capture_count"]
+
+    return RedirectResponse(url="/result", status_code=303)
+
 @app.get("/result", response_class=HTMLResponse)
-async def get_result(request: Request, n: int = 1, a: int = 0):
+async def get_result(request: Request):
+    data = result_store.get("latest", {})
     return templates.TemplateResponse("result.html", {
         "request": request,
-        "attempt": n,
-        "accuracy": a
+        "data": data
     })
 
 # -------------------------
-# 세션 관리
-# -------------------------
-current_session = {}
-
-# -------------------------
-# 캡처 API
+# 캡처 API (세션 단위 폴더 + 사진 순번 증가)
 # -------------------------
 @app.post("/capture")
 async def capture(req: Request):
@@ -70,38 +97,33 @@ async def capture(req: Request):
     date_folder = os.path.join(base_folder, today)
     os.makedirs(date_folder, exist_ok=True)
 
-    if today not in current_session:
+    # ✅ 매 게임마다 새로운 세션 폴더 생성
+    if "capture_session" not in result_store:
         subfolders = [f for f in os.listdir(date_folder) if os.path.isdir(os.path.join(date_folder, f))]
-        next_folder = str(len(subfolders) + 1)
-        current_session[today] = next_folder
-    next_folder = current_session[today]
+        folder_nm = str(len(subfolders) + 1) if subfolders else "1"
+        result_store["capture_session"] = folder_nm
+        result_store["capture_count"] = 0   # 새 세션 시작 시 카운트 초기화
+    else:
+        folder_nm = result_store["capture_session"]
 
-    subfolder_path = os.path.join(date_folder, next_folder)
+    subfolder_path = os.path.join(date_folder, folder_nm)
     os.makedirs(subfolder_path, exist_ok=True)
 
-    existing_files = [f for f in os.listdir(subfolder_path) if f.endswith(".jpg")]
-    filename = f"{today}_{len(existing_files)+1}.jpg"
+    # ✅ 이번 게임 내에서 파일 순번 증가
+    result_store["capture_count"] += 1
+    filename = f"{today}_{result_store['capture_count']}.jpg"
     filepath = os.path.join(subfolder_path, filename)
 
     with open(filepath, "wb") as f:
         f.write(base64.b64decode(image.split(",")[1]))
 
     print(f"[capture] saved {filepath}")
-    return {"status": "ok", "session": next_folder, "saved": filepath}
+
+    # ✅ 풀 경로 대신 파일명만 반환
+    return {"status": "ok", "session": folder_nm, "saved": filename}
 
 # -------------------------
-# 게임 종료 → 세션 초기화
-# -------------------------
-@app.post("/end")
-async def end_game():
-    today = datetime.now().strftime("%Y-%m-%d")
-    if today in current_session:
-        del current_session[today]
-    print("[end_game] 세션 초기화 완료")
-    return {"status": "ok", "message": "세션 초기화 완료"}
-
-# -------------------------
-# 비디오 업로드 (fallback 저장)
+# 비디오 업로드 (서버에는 저장만, result_redirect엔 사용하지 않음)
 # -------------------------
 @app.post("/upload_video")
 async def upload_video(file: UploadFile = File(...)):
@@ -110,29 +132,26 @@ async def upload_video(file: UploadFile = File(...)):
     date_folder = os.path.join(base_folder, today)
     os.makedirs(date_folder, exist_ok=True)
 
-    if today not in current_session:
-        subfolders = [f for f in os.listdir(date_folder) if os.path.isdir(os.path.join(date_folder, f))]
-        next_folder = str(len(subfolders) + 1)
-        current_session[today] = next_folder
-    next_folder = current_session[today]
-
-    subfolder_path = os.path.join(date_folder, next_folder)
+    subfolders = [f for f in os.listdir(date_folder) if os.path.isdir(os.path.join(date_folder, f))]
+    folder_nm = str(len(subfolders) + 1) if subfolders else "1"
+    subfolder_path = os.path.join(date_folder, folder_nm)
     os.makedirs(subfolder_path, exist_ok=True)
 
+    # 실제 저장 경로
     mp4_path = os.path.join(subfolder_path, f"{today}.mp4")
-
-    print(f"[upload_video] called → saving {mp4_path}")
 
     try:
         with open(mp4_path, "wb") as f:
             content = await file.read()
             f.write(content)
     except Exception as e:
-        print(f"[upload_video] save failed: {e}")
-        return {"status": "error", "message": f"파일 저장 실패: {str(e)}"}
+        return {"status": "error", "message": str(e)}
 
-    print(f"[upload_video] saved OK: {mp4_path}")
-    return {"status": "ok", "path": mp4_path}
+    # 웹 접근 경로 (현재는 result_redirect에 전달 안 함)
+    web_path = f"/static/result_images/video/{today}/{folder_nm}/{today}.mp4"
+
+    print(f"[upload_video] saved {mp4_path}")
+    return {"status": "ok", "path": web_path}
 
 # -------------------------
 # 실행
