@@ -1,5 +1,6 @@
 import * as utils from "./play_utils.js";
 import { getDetector } from "./play_detector.js";
+import { updateAccuracy } from "./play_main.js";  // ✅ 추가
 
 let latestPose = null;
 let renderRaf = null;
@@ -43,11 +44,17 @@ export function startRenderLoop(canvasEl, ctx, targetKeyRef, bestAccRef) {
           const sim = utils.computeSimilarity(vecMe, vecTarget);
           const percent = Math.round(sim * 100);
 
+          // 현재 정확도 표시
           if (accNowEl) accNowEl.textContent = `${percent}%`;
+
+          // 최고 정확도 갱신
           if (percent > bestAccRef.value) {
             bestAccRef.value = percent;
             if (accBestEl) accBestEl.textContent = `${bestAccRef.value}%`;
           }
+
+          // ✅ currentAcc & bestAcc 갱신
+          updateAccuracy(percent);
         }
       }
     }
