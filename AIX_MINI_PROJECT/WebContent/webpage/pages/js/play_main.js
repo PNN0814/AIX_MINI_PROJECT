@@ -10,38 +10,83 @@ import {
 import { initCameraWithFallback, resizeCanvasToVideo } from "./play_camera.js";
 import { initDetector, detectTargetKey } from "./play_detector.js";
 import { startEstimationPump, startRenderLoop } from "./play_render.js";
-import "./play_target_skeleton.js";   // ✅ 타겟 이미지 키포인트 추출 활성화
+import "./play_target_skeleton.js";
 
 let targetKey = { value: null };
-let bestAcc = { value: 0 };
+let bestAcc = { value: 0 };   // ✅ 게임 전체 도중 최고 정확도
+let currentAcc = 0;           // 이번 라운드 순간 정확도
 
 let players = 1;
 let usedImages = new Set();
+let photosCount = 1;
+let attemptNum = 1;
 
-// ----------------------------
-// 녹화 관련
-// ----------------------------
 export let mediaRecorder;
 let recordedChunks = [];
 
+// ✅ 좌우반전용 캔버스 (녹화 & 캡처 공통 사용)
+let mirrorCanvas = null;
+let mirrorCtx = null;
+
+let lastCaptureFolder = null;
+let capturedImages = [];
+let capturedTargets = [];
+let capturedAccuracies = []; // 라운드별 순간 정확도 기록
+
+// ----------------------------
+// 정확도 업데이트 (렌더루프/디텍터에서 호출)
+// ----------------------------
+export function updateAccuracy(acc) {
+  currentAcc = acc;               // 이번 라운드 순간값
+  if (acc > bestAcc.value) {      // 게임 전체 최고값 갱신
+    bestAcc.value = acc;
+  }
+}
+
+// ----------------------------
+// 녹화 시작 (좌우반전 적용)
+// ----------------------------
 export async function startWebcamRecording(videoEl) {
   const stream = videoEl.srcObject;
   if (!stream) return;
 
+  // ✅ 좌우반전용 캔버스 준비
+  mirrorCanvas = document.createElement("canvas");
+  mirrorCanvas.width = videoEl.videoWidth || 640;
+  mirrorCanvas.height = videoEl.videoHeight || 480;
+  mirrorCtx = mirrorCanvas.getContext("2d");
+
+  function drawMirror() {
+    mirrorCtx.save();
+    mirrorCtx.translate(mirrorCanvas.width, 0);
+    mirrorCtx.scale(-1, 1);
+    mirrorCtx.drawImage(videoEl, 0, 0, mirrorCanvas.width, mirrorCanvas.height);
+    mirrorCtx.restore();
+    requestAnimationFrame(drawMirror);
+  }
+  drawMirror();
+
+  // ✅ 반전된 스트림으로 녹화
+  const mirroredStream = mirrorCanvas.captureStream(30);
+
   recordedChunks = [];
-  mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm; codecs=vp9" });
+  mediaRecorder = new MediaRecorder(mirroredStream, { mimeType: "video/webm; codecs=vp9" });
 
   mediaRecorder.ondataavailable = (e) => {
     if (e.data.size > 0) recordedChunks.push(e.data);
   };
 
   mediaRecorder.start();
-  console.log("[recording] started");
+  console.log("[recording] started (mirrored)");
 }
 
+// ----------------------------
+// 녹화 중단 + 업로드
+// ----------------------------
 export function stopWebcamRecordingAndUpload() {
   return new Promise((resolve, reject) => {
     if (!mediaRecorder || mediaRecorder.state === "inactive") {
+      console.warn("[recording] no active recorder");
       return resolve();
     }
 
@@ -77,7 +122,7 @@ export function stopWebcamRecordingAndUpload() {
       };
 
       const formData = new FormData();
-      formData.append("file", blob, "recording.webm");
+      formData.append("file", blob, "recording.mp4"); // 서버에서는 mp4로 저장
       xhr.send(formData);
     };
 
@@ -87,7 +132,7 @@ export function stopWebcamRecordingAndUpload() {
 }
 
 // ----------------------------
-// DOMContentLoaded
+// 초기화
 // ----------------------------
 window.addEventListener("DOMContentLoaded", async () => {
   const videoEl = document.getElementById("webcam");
@@ -96,13 +141,10 @@ window.addEventListener("DOMContentLoaded", async () => {
   const targetImgEl = document.getElementById("targetImage");
 
   const urlParams = new URL(location.href).searchParams;
-  const attemptNum = Number(urlParams.get("n") || 1);
-  const photosCount = Number(urlParams.get("photos") || 1);
+  attemptNum = Number(urlParams.get("n") || 1);
+  photosCount = Number(urlParams.get("photos") || 1);
   players = Number(urlParams.get("players") || 1);
 
-  await fetch("/end", { method: "POST" });
-
-  // ✅ 진입 즉시 로딩
   await showLoadingOverlay();
 
   await pickRandomTarget(targetImgEl, players);
@@ -120,7 +162,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 });
 
 // ----------------------------
-// 라운드
+// 라운드 실행
 // ----------------------------
 async function runRound(roundIdx, photosCount, attemptNum, videoEl, targetImgEl) {
   if (roundIdx > 1) {
@@ -142,8 +184,31 @@ async function runRound(roundIdx, photosCount, attemptNum, videoEl, targetImgEl)
     async () => {
       await captureFrame(videoEl, false, roundIdx);
 
+      // 이번 라운드 순간 정확도 저장
+      capturedAccuracies.push(currentAcc);
+
       if (roundIdx >= photosCount) {
-        await showEndOverlay(attemptNum, bestAcc);
+        await stopWebcamRecordingAndUpload();
+
+        const today = new Date().toISOString().split("T")[0];
+
+        // ✅ 최고 정확도는 게임 전체 도중 갱신된 최고값 저장
+        await fetch("/result_redirect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            date: today,
+            folder: lastCaptureFolder,
+            player: players,
+            max_image: photosCount,
+            images_nm: capturedImages,
+            images_ac: capturedAccuracies,
+            best_ac: bestAcc.value, // ← 게임 전체 중 최고값
+            targets: capturedTargets
+          }),
+        });
+
+        window.location.href = "/result";
       } else {
         runRound(roundIdx + 1, photosCount, attemptNum, videoEl, targetImgEl);
       }
@@ -171,7 +236,7 @@ function startCountdown(sec, el, onDone) {
 }
 
 // ----------------------------
-// 캡처
+// 캡처 (좌우반전 적용)
 // ----------------------------
 async function captureFrame(videoEl, withSkeleton, roundIdx) {
   const canvas = document.createElement("canvas");
@@ -179,25 +244,42 @@ async function captureFrame(videoEl, withSkeleton, roundIdx) {
   canvas.height = videoEl.videoHeight;
   const ctx = canvas.getContext("2d");
 
+  // ✅ 좌우반전된 화면 그리기
+  ctx.save();
+  ctx.translate(canvas.width, 0);
+  ctx.scale(-1, 1);
   ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+  ctx.restore();
 
   const dataUrl = canvas.toDataURL("image/jpeg");
+  const targetImgEl = document.getElementById("targetImage");
+  const targetSrc = targetImgEl ? targetImgEl.src.split("/").pop() : null;
 
   try {
     const res = await fetch("/capture", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: dataUrl, skeleton: withSkeleton, round: roundIdx }),
+      body: JSON.stringify({
+        image: dataUrl,
+        skeleton: withSkeleton,
+        round: roundIdx,
+        player: players,
+        accuracy: currentAcc
+      }),
     });
     const result = await res.json();
     console.log("[capture result]", result);
+
+    lastCaptureFolder = result.session;
+    capturedImages.push(result.saved); // 파일명만 반환됨
+    if (targetSrc) capturedTargets.push(targetSrc);
   } catch (err) {
     console.error("[capture error]", err);
   }
 }
 
 // ----------------------------
-// 랜덤 타겟 이미지
+// 랜덤 타겟 선택
 // ----------------------------
 async function pickRandomTarget(targetImgEl, players) {
   let maxRange = 20;
