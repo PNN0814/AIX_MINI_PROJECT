@@ -1,51 +1,41 @@
 let detector = null;
 
-export function getDetector() {
-  return detector;
-}
-
+// ✅ MoveNet MultiPose로 초기화
 export async function initDetector() {
   if (detector) return detector;
   await tf.setBackend("webgl");
   await tf.ready();
   detector = await poseDetection.createDetector(
     poseDetection.SupportedModels.MoveNet,
-    { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING }
+    {
+      modelType: poseDetection.movenet.modelType.MULTIPOSE_LIGHTNING,
+      enableSmoothing: true
+    }
   );
   return detector;
 }
 
-export async function detectTargetKey(targetImgEl) {
-  if (!detector) await initDetector();
+export function getDetector() {
+  return detector;
+}
 
-  async function tryEstimate(canvas) {
-    const poses = await detector.estimatePoses(canvas, { flipHorizontal: false });
-    return poses?.[0]?.keypoints || null;
-  }
+// ✅ 기준 이미지에서 여러 명 포즈 추출
+export async function detectTargetKeys(imgEl) {
+  const det = await initDetector();
+  const w = imgEl.naturalWidth || imgEl.width;
+  const h = imgEl.naturalHeight || imgEl.height;
+  const tmp = document.createElement("canvas");
+  tmp.width = w; tmp.height = h;
+  tmp.getContext("2d").drawImage(imgEl, 0, 0);
 
-  // 1차: 원본 크기
-  const tempCanvas = document.createElement("canvas");
-  tempCanvas.width = targetImgEl.naturalWidth || targetImgEl.width;
-  tempCanvas.height = targetImgEl.naturalHeight || targetImgEl.height;
-  tempCanvas.getContext("2d").drawImage(targetImgEl, 0, 0);
-  let keypoints = await tryEstimate(tempCanvas);
+  const poses = await det.estimatePoses(tmp, { flipHorizontal: false });
+  return (poses || [])
+    .filter(p => p && p.keypoints && p.keypoints.length)
+    .map(p => p.keypoints);
+}
 
-  // 2차: 해상도 절반으로 줄여서 재시도
-  if (!keypoints) {
-    const w = (targetImgEl.naturalWidth || targetImgEl.width) / 2;
-    const h = (targetImgEl.naturalHeight || targetImgEl.height) / 2;
-    const smallCanvas = document.createElement("canvas");
-    smallCanvas.width = w;
-    smallCanvas.height = h;
-    smallCanvas.getContext("2d").drawImage(targetImgEl, 0, 0, w, h);
-    keypoints = await tryEstimate(smallCanvas);
-  }
-
-  // 그래도 실패하면 → 기본값 벡터
-  if (!keypoints) {
-    console.error("[detectTargetKey] failed → using fallback keypoints");
-    keypoints = Array(17).fill({ x: 0, y: 0, score: 0 });
-  }
-
-  return keypoints;
+// ✅ 역호환 (첫 번째 사람만 반환)
+export async function detectTargetKey(imgEl) {
+  const arr = await detectTargetKeys(imgEl);
+  return arr[0] || null;
 }
