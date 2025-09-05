@@ -297,3 +297,148 @@ document.addEventListener("DOMContentLoaded", function () {
   }
   ready(init);
 })();
+
+/* =====================================================================
+   Zoom Modal - Save Button (v7 add-on)
+   - Injects a "저장" button into .zoom-controls if missing
+   - Downloads the currently zoomed image (zoomImage.src)
+   ===================================================================== */
+(function () {
+  function ready(fn){
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", fn, { once:true });
+    } else { fn(); }
+  }
+
+  ready(function () {
+    // Ensure controls exist
+    var controls = document.querySelector(".zoom-controls");
+    if (!controls) return;
+
+    // Create and insert "저장" button if absent
+    var btnSave = document.getElementById("zoomSaveBtn");
+    if (!btnSave) {
+      btnSave = document.createElement("button");
+      btnSave.id = "zoomSaveBtn";
+      btnSave.type = "button";
+      btnSave.setAttribute("aria-label", "저장");
+      btnSave.textContent = "저장";
+
+      // Try to insert before Close button for nice ordering
+      var btnClose = document.getElementById("zoomCloseBtn");
+      if (btnClose && btnClose.parentElement === controls) {
+        controls.insertBefore(btnSave, btnClose);
+      } else {
+        controls.appendChild(btnSave);
+      }
+    }
+
+    // Bind click -> download zoomed image
+    var img = document.getElementById("zoomImage");
+    btnSave.addEventListener("click", function () {
+      if (!img || !img.src) {
+        alert("저장할 이미지가 없습니다.");
+        return;
+      }
+      try {
+        var a = document.createElement("a");
+        a.href = img.src;
+        // derive filename
+        var name = "download.png";
+        try {
+          var parts = (img.src || "").split("/");
+          var last = parts[parts.length - 1];
+          if (last) name = decodeURIComponent(last.split("?")[0]) || name;
+        } catch (e) {}
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (err) {
+        console.warn("[zoom-modal] Save failed:", err);
+        alert("이미지를 저장할 수 없습니다.");
+      }
+    });
+  });
+})();
+
+
+/* =====================================================================
+   모달 닫기 애니메이션 + 저장 토스트 (최소 패치)
+   - 모달은 기존처럼 .open 토글만 해도 CSS가 자연스럽게 애니메이션 처리
+   - 저장 버튼 클릭 시 하단 토스트로 상태 피드백
+   ===================================================================== */
+(function () {
+  function ready(fn){
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", fn, { once:true });
+    } else { fn(); }
+  }
+
+  // 토스트 유틸
+  function getToastEl() {
+    let el = document.getElementById("zoomToast");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "zoomToast";
+      el.className = "zoom-toast";
+      el.setAttribute("role", "status");
+      el.setAttribute("aria-live", "polite");
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+  let toastTimer = null;
+  function showToast(message, ms=1400) {
+    const el = getToastEl();
+    el.textContent = message;
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("show"), ms);
+  }
+
+  ready(function () {
+    // 저장 버튼을 찾아 이벤트만 추가 (v7에서 동적으로 만들었어도 문제 없음)
+    const btnSave = document.getElementById("zoomSaveBtn");
+    const img = document.getElementById("zoomImage");
+
+    if (btnSave) {
+      const origHandler = () => {
+        if (!img || !img.src) {
+          showToast("저장할 이미지가 없어요");
+          return;
+        }
+        try {
+          const a = document.createElement("a");
+          a.href = img.src;
+          let name = "download.png";
+          try {
+            const parts = (img.src || "").split("/");
+            const last = parts[parts.length - 1];
+            if (last) name = decodeURIComponent(last.split("?")[0]) || name;
+          } catch (e) {}
+
+          a.download = name;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          showToast("다운로드 시작!");
+        } catch (err) {
+          console.warn("[zoom-modal] Save failed:", err);
+          showToast("저장 실패 😥");
+        }
+      };
+
+      // 중복 바인딩 방지
+      btnSave.replaceWith(btnSave.cloneNode(true));
+      const safeBtn = document.getElementById("zoomSaveBtn");
+      safeBtn.addEventListener("click", origHandler);
+      safeBtn.title = "저장 (다운로드)";
+      safeBtn.setAttribute("aria-label", "저장");
+    }
+
+    // 배경 클릭 닫기는 기존 코드로 충분 (CSS 애니메이션이 적용되어 부드럽게 닫힘)
+    // ESC 닫기도 기존 코드 유지하면 OK
+  });
+})();
