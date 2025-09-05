@@ -1,44 +1,80 @@
-// play_target_skeleton.js
-import { initDetector } from "./play_detector.js";
+import { initDetector, detectTargetKeys } from "./play_detector.js";
+import { drawMultiSkeleton } from "./play_utils.js";
 
-window.addEventListener("DOMContentLoaded", async () => {
+function waitImageLoaded(img) {
+  return new Promise((resolve, reject) => {
+    if (!img) return reject(new Error("#targetImage not found"));
+    if (img.complete && img.naturalWidth > 0) return resolve();
+    img.onload = () => resolve();
+    img.onerror = (e) => reject(e);
+  });
+}
+
+function ensureTargetCanvas(imgEl) {
+  let canvas = document.getElementById("targetSkeletonCanvas");
+  if (!canvas) {
+    canvas = document.createElement("canvas");
+    canvas.id = "targetSkeletonCanvas";
+    canvas.style.position = "absolute";
+    canvas.style.top = "0";
+    canvas.style.left = "0";
+    canvas.style.pointerEvents = "none";
+    imgEl.parentNode.style.position = imgEl.parentNode.style.position || "relative";
+    imgEl.parentNode.appendChild(canvas);
+  }
+  return canvas;
+}
+
+function syncCanvasToImage(canvas, imgEl) {
+  canvas.width = imgEl.naturalWidth || imgEl.width;
+  canvas.height = imgEl.naturalHeight || imgEl.height;
+  const rect = imgEl.getBoundingClientRect();
+  canvas.style.width = rect.width + "px";
+  canvas.style.height = rect.height + "px";
+}
+
+function drawTargetSkeleton(keysArray, imgEl) {
+  if (!keysArray || !keysArray.length) return;
+  const canvas = ensureTargetCanvas(imgEl);
+  syncCanvasToImage(canvas, imgEl);
+  const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  drawMultiSkeleton(keysArray, ctx);
+}
+
+async function main() {
   const img = document.getElementById("targetImage");
   if (!img) return;
 
-  // 이미지 로딩 완료 대기
-  await new Promise(res => (img.complete ? res() : (img.onload = res)));
-
   try {
-    const detector = await initDetector();
+    await waitImageLoaded(img);
+    await initDetector();
+    const keys = await detectTargetKeys(img);
 
-    // 임시 캔버스에 타겟 이미지 복사
-    const w = img.naturalWidth || img.width;
-    const h = img.naturalHeight || img.height;
-    const tmp = document.createElement("canvas");
-    tmp.width = w;
-    tmp.height = h;
-    tmp.getContext("2d").drawImage(img, 0, 0);
+    if (!window.targetKeyRef) window.targetKeyRef = { value: null };
+    window.targetKeyRef.value = keys || [];
+    window.targetKey = window.targetKeyRef.value;
 
-    // 포즈 추출
-    const poses = await detector.estimatePoses(tmp, { flipHorizontal: false });
-    const kp = poses && poses[0] ? poses[0].keypoints : null;
-
-    if (kp) {
-      console.log("[target-skel] keypoints extracted");
-      // ✅ targetKeyRef가 있으면 거기에 저장
-      if (window.targetKeyRef) {
-        window.targetKeyRef.value = kp;
-      } else {
-        window.targetKey = kp;
-      }
+    if (Array.isArray(window.targetKeyRef.value) && window.targetKeyRef.value.length) {
+      drawTargetSkeleton(window.targetKeyRef.value, img);
     } else {
-      console.warn("[target-skel] no keypoints detected");
-      if (window.targetKeyRef) window.targetKeyRef.value = null;
-      else window.targetKey = null;
+      const c = document.getElementById("targetSkeletonCanvas");
+      if (c) c.getContext("2d").clearRect(0, 0, c.width, c.height);
     }
-  } catch (e) {
-    console.error("[target-skel] error", e);
-    if (window.targetKeyRef) window.targetKeyRef.value = null;
-    else window.targetKey = null;
+
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => {
+        const c = document.getElementById("targetSkeletonCanvas");
+        if (c) syncCanvasToImage(c, img);
+      });
+      ro.observe(img);
+    }
+  } catch (err) {
+    console.error("[play_target_skeleton] error:", err);
+    if (!window.targetKeyRef) window.targetKeyRef = { value: null };
+    window.targetKeyRef.value = null;
+    window.targetKey = null;
   }
-});
+}
+
+window.addEventListener("DOMContentLoaded", main);
