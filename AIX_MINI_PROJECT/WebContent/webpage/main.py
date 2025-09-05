@@ -43,6 +43,28 @@ async def get_setting(request: Request):
 
 @app.get("/play", response_class=HTMLResponse)
 async def get_play(request: Request):
+    today = datetime.now().strftime("%Y-%m-%d")
+    base_folder = os.path.join(IMG_RESULT_DIR, "capture")
+    date_folder = os.path.join(base_folder, today)
+    os.makedirs(date_folder, exist_ok=True)
+
+    # ✅ 오늘 날짜 폴더 내 새 세션 번호 계산
+    subfolders = [f for f in os.listdir(date_folder) if os.path.isdir(os.path.join(date_folder, f))]
+    if not subfolders:
+        folder_nm = "1"
+    else:
+        nums = [int(f) for f in subfolders if f.isdigit()]
+        folder_nm = str(max(nums) + 1 if nums else 1)
+
+    subfolder_path = os.path.join(date_folder, folder_nm)
+    os.makedirs(subfolder_path, exist_ok=True)
+
+    # ✅ 세션 초기화 + 새 세션 등록
+    result_store["capture_session"] = folder_nm
+    result_store["capture_count"] = 0
+
+    print(f"[play] new capture session started: {subfolder_path}")
+
     return templates.TemplateResponse("play.html", {"request": request})
 
 # -------------------------
@@ -53,13 +75,10 @@ result_store = {}
 @app.post("/result_redirect")
 async def result_redirect(request: Request):
     data = await request.json()
-    today = data.get("date")
-    folder = data.get("folder")
 
-    # ✅ video 제거, images_nm은 파일명만 들어옴
     result_store["latest"] = {
-        "date": today,
-        "folder": folder,
+        "date": data.get("date"),
+        "folder": data.get("folder"),
         "player": data.get("player"),
         "max_image": data.get("max_image"),
         "images_nm": data.get("images_nm", []),
@@ -68,7 +87,7 @@ async def result_redirect(request: Request):
         "targets": data.get("targets", [])
     }
 
-    # ✅ 다음 게임을 위해 캡처 세션 초기화
+    # ✅ 게임 종료 후 세션 정리
     if "capture_session" in result_store:
         del result_store["capture_session"]
     if "capture_count" in result_store:
@@ -85,45 +104,36 @@ async def get_result(request: Request):
     })
 
 # -------------------------
-# 캡처 API (세션 단위 폴더 + 사진 순번 증가)
+# 캡처 (현재 세션 폴더에 저장)
 # -------------------------
 @app.post("/capture")
 async def capture(req: Request):
+    if "capture_session" not in result_store:
+        return {"status": "error", "message": "No active session. /play 진입 시 세션이 생성되지 않음"}
+
     data = await req.json()
     image = data["image"]
 
     today = datetime.now().strftime("%Y-%m-%d")
     base_folder = os.path.join(IMG_RESULT_DIR, "capture")
     date_folder = os.path.join(base_folder, today)
-    os.makedirs(date_folder, exist_ok=True)
-
-    # ✅ 매 게임마다 새로운 세션 폴더 생성
-    if "capture_session" not in result_store:
-        subfolders = [f for f in os.listdir(date_folder) if os.path.isdir(os.path.join(date_folder, f))]
-        folder_nm = str(len(subfolders) + 1) if subfolders else "1"
-        result_store["capture_session"] = folder_nm
-        result_store["capture_count"] = 0   # 새 세션 시작 시 카운트 초기화
-    else:
-        folder_nm = result_store["capture_session"]
-
+    folder_nm = result_store["capture_session"]
     subfolder_path = os.path.join(date_folder, folder_nm)
-    os.makedirs(subfolder_path, exist_ok=True)
 
-    # ✅ 이번 게임 내에서 파일 순번 증가
+    # 파일 번호 증가
     result_store["capture_count"] += 1
-    filename = f"{today}_{result_store['capture_count']}.jpg"
+    idx = result_store["capture_count"]
+    filename = f"{today}_{idx}.jpg"
     filepath = os.path.join(subfolder_path, filename)
 
     with open(filepath, "wb") as f:
         f.write(base64.b64decode(image.split(",")[1]))
 
     print(f"[capture] saved {filepath}")
-
-    # ✅ 풀 경로 대신 파일명만 반환
     return {"status": "ok", "session": folder_nm, "saved": filename}
 
 # -------------------------
-# 비디오 업로드 (서버에는 저장만, result_redirect엔 사용하지 않음)
+# 비디오 업로드 (영상 구조 그대로 유지)
 # -------------------------
 @app.post("/upload_video")
 async def upload_video(file: UploadFile = File(...)):
@@ -137,7 +147,6 @@ async def upload_video(file: UploadFile = File(...)):
     subfolder_path = os.path.join(date_folder, folder_nm)
     os.makedirs(subfolder_path, exist_ok=True)
 
-    # 실제 저장 경로
     mp4_path = os.path.join(subfolder_path, f"{today}.mp4")
 
     try:
@@ -147,9 +156,7 @@ async def upload_video(file: UploadFile = File(...)):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-    # 웹 접근 경로 (현재는 result_redirect에 전달 안 함)
     web_path = f"/static/result_images/video/{today}/{folder_nm}/{today}.mp4"
-
     print(f"[upload_video] saved {mp4_path}")
     return {"status": "ok", "path": web_path}
 
