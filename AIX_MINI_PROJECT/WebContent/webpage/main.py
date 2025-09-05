@@ -44,27 +44,32 @@ async def get_setting(request: Request):
 @app.get("/play", response_class=HTMLResponse)
 async def get_play(request: Request):
     today = datetime.now().strftime("%Y-%m-%d")
-    base_folder = os.path.join(IMG_RESULT_DIR, "capture")
-    date_folder = os.path.join(base_folder, today)
-    os.makedirs(date_folder, exist_ok=True)
 
-    # ✅ 오늘 날짜 폴더 내 새 세션 번호 계산
-    subfolders = [f for f in os.listdir(date_folder) if os.path.isdir(os.path.join(date_folder, f))]
+    # ---- 캡처 폴더 ----
+    capture_base = os.path.join(IMG_RESULT_DIR, "capture", today)
+    os.makedirs(capture_base, exist_ok=True)
+    subfolders = [f for f in os.listdir(capture_base) if os.path.isdir(os.path.join(capture_base, f))]
     if not subfolders:
         folder_nm = "1"
     else:
         nums = [int(f) for f in subfolders if f.isdigit()]
         folder_nm = str(max(nums) + 1 if nums else 1)
 
-    subfolder_path = os.path.join(date_folder, folder_nm)
-    os.makedirs(subfolder_path, exist_ok=True)
+    capture_path = os.path.join(capture_base, folder_nm)
+    os.makedirs(capture_path, exist_ok=True)
 
-    # ✅ 세션 초기화 + 새 세션 등록
+    # ---- 비디오 폴더 (같은 번호) ----
+    video_base = os.path.join(IMG_RESULT_DIR, "video", today)
+    os.makedirs(video_base, exist_ok=True)
+    video_path = os.path.join(video_base, folder_nm)
+    os.makedirs(video_path, exist_ok=True)
+
+    # ✅ 세션 초기화 + 공통 번호 공유
     result_store["capture_session"] = folder_nm
     result_store["capture_count"] = 0
+    result_store["video_session"] = folder_nm
 
-    print(f"[play] new capture session started: {subfolder_path}")
-
+    print(f"[play] new session started: capture={capture_path}, video={video_path}")
     return templates.TemplateResponse("play.html", {"request": request})
 
 # -------------------------
@@ -92,6 +97,8 @@ async def result_redirect(request: Request):
         del result_store["capture_session"]
     if "capture_count" in result_store:
         del result_store["capture_count"]
+    if "video_session" in result_store:
+        del result_store["video_session"]
 
     return RedirectResponse(url="/result", status_code=303)
 
@@ -109,16 +116,15 @@ async def get_result(request: Request):
 @app.post("/capture")
 async def capture(req: Request):
     if "capture_session" not in result_store:
-        return {"status": "error", "message": "No active session. /play 진입 시 세션이 생성되지 않음"}
+        return {"status": "error", "message": "No active capture session. /play 먼저 실행하세요."}
 
     data = await req.json()
     image = data["image"]
 
     today = datetime.now().strftime("%Y-%m-%d")
-    base_folder = os.path.join(IMG_RESULT_DIR, "capture")
-    date_folder = os.path.join(base_folder, today)
+    base_folder = os.path.join(IMG_RESULT_DIR, "capture", today)
     folder_nm = result_store["capture_session"]
-    subfolder_path = os.path.join(date_folder, folder_nm)
+    subfolder_path = os.path.join(base_folder, folder_nm)
 
     # 파일 번호 증가
     result_store["capture_count"] += 1
@@ -133,18 +139,17 @@ async def capture(req: Request):
     return {"status": "ok", "session": folder_nm, "saved": filename}
 
 # -------------------------
-# 비디오 업로드 (영상 구조 그대로 유지)
+# 비디오 업로드 (세션 폴더에 저장)
 # -------------------------
 @app.post("/upload_video")
 async def upload_video(file: UploadFile = File(...)):
-    today = datetime.now().strftime("%Y-%m-%d")
-    base_folder = os.path.join(IMG_RESULT_DIR, "video")
-    date_folder = os.path.join(base_folder, today)
-    os.makedirs(date_folder, exist_ok=True)
+    if "video_session" not in result_store:
+        return {"status": "error", "message": "No active video session. /play 먼저 실행하세요."}
 
-    subfolders = [f for f in os.listdir(date_folder) if os.path.isdir(os.path.join(date_folder, f))]
-    folder_nm = str(len(subfolders) + 1) if subfolders else "1"
-    subfolder_path = os.path.join(date_folder, folder_nm)
+    today = datetime.now().strftime("%Y-%m-%d")
+    base_folder = os.path.join(IMG_RESULT_DIR, "video", today)
+    folder_nm = result_store["video_session"]
+    subfolder_path = os.path.join(base_folder, folder_nm)
     os.makedirs(subfolder_path, exist_ok=True)
 
     mp4_path = os.path.join(subfolder_path, f"{today}.mp4")
