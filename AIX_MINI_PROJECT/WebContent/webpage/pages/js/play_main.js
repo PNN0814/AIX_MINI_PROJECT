@@ -21,6 +21,11 @@ let usedImages = new Set();
 let photosCount = 1;
 let attemptNum = 1;
 
+let lastCaptureFolder = null;
+let capturedImages = [];
+let capturedTargets = [];
+let capturedAccuracies = [];   // ✅ 라운드별 정확도 기록
+
 export let mediaRecorder;
 let recordedChunks = [];
 
@@ -35,7 +40,7 @@ export function updateAccuracy(acc) {
 }
 
 // ----------------------------
-// 녹화 관련 (최신 소스 그대로)
+// 녹화 관련
 // ----------------------------
 export async function startWebcamRecording(videoEl) {
   const stream = videoEl.srcObject;
@@ -109,9 +114,14 @@ window.addEventListener("DOMContentLoaded", async () => {
   const targetImgEl = document.getElementById("targetImage");
 
   const urlParams = new URL(location.href).searchParams;
-  attemptNum = Number(urlParams.get("n") || 1);
+  attemptNum = Number(urlParams.get("n") || 1);   // ✅ 게임 번호
   photosCount = Number(urlParams.get("photos") || 1);
   players = Number(urlParams.get("players") || 1);
+
+  // ✅ 배열 초기화
+  capturedImages = [];
+  capturedTargets = [];
+  capturedAccuracies = [];
 
   await showLoadingOverlay();
   await pickRandomTarget(targetImgEl, players);
@@ -153,6 +163,27 @@ async function runRound(roundIdx, photosCount, attemptNum, videoEl, targetImgEl)
 
       if (roundIdx >= photosCount) {
         await stopWebcamRecordingAndUpload();
+
+        // ✅ 최종 결과 서버에 전달
+        try {
+          await fetch("/result_redirect", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              date: new Date().toISOString().split("T")[0],  // 오늘 날짜
+              folder: lastCaptureFolder,                     // 캡처 폴더 번호
+              player: players,
+              max_image: photosCount,
+              images_nm: capturedImages,                     // 저장된 캡처 이미지들
+              images_ac: capturedAccuracies,                 // ✅ 라운드별 정확도
+              best_ac: bestAcc.value,                        // 최고 정확도
+              targets: capturedTargets                       // 타겟 이미지 파일명들
+            })
+          });
+        } catch (err) {
+          console.error("[result_redirect error]", err);
+        }
+
         await showEndOverlay(attemptNum, bestAcc);
       } else {
         runRound(roundIdx + 1, photosCount, attemptNum, videoEl, targetImgEl);
@@ -181,7 +212,7 @@ function startCountdown(sec, el, onDone) {
 }
 
 // ----------------------------
-// 캡처
+// 캡처 (게임=폴더, 라운드=파일)
 // ----------------------------
 async function captureFrame(videoEl, withSkeleton, roundIdx) {
   const canvas = document.createElement("canvas");
@@ -192,15 +223,34 @@ async function captureFrame(videoEl, withSkeleton, roundIdx) {
   ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
 
   const dataUrl = canvas.toDataURL("image/jpeg");
+  const targetImgEl = document.getElementById("targetImage");
+  const targetSrc = targetImgEl ? targetImgEl.src.split("/").pop() : null;
 
   try {
     const res = await fetch("/capture", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: dataUrl, skeleton: withSkeleton, round: roundIdx, accuracy: currentAcc }),
+      body: JSON.stringify({
+        image: dataUrl,
+        skeleton: withSkeleton,
+        round: roundIdx,
+        accuracy: currentAcc,
+        attempt: attemptNum
+      }),
     });
     const result = await res.json();
     console.log("[capture result]", result);
+
+    if (result.session) {
+      lastCaptureFolder = result.session;
+    }
+    if (result.saved) {
+      capturedImages.push(result.saved);
+      capturedAccuracies.push(currentAcc);   // ✅ 현재 정확도 저장
+    }
+    if (targetSrc) {
+      capturedTargets.push(targetSrc);
+    }
   } catch (err) {
     console.error("[capture error]", err);
   }
