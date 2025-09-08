@@ -52,7 +52,7 @@
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.05);
   padding: 12px;
   border-radius: 8px;
 }
@@ -143,7 +143,7 @@
 .filter-btn {
   width: 70px;
   height: 90px;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -208,6 +208,7 @@
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
 }
 
 .zoom-content {
@@ -256,10 +257,44 @@
   color: #fff;
   font-weight: 700;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0 14px;
+  box-sizing: border-box;
 }
 
 .zoom-controls button:hover {
   background: rgba(255, 255, 255, 0.25);
+}
+
+/* 저장 버튼: '영상 다운로드'와 동일 색상 사용 */
+#zoomSaveBtn {
+  background-color: #ff6600;
+  border-color: #ff6600;
+  color: #fff;
+}
+#zoomSaveBtn:hover {
+  background-color: #cc5200;
+  border-color: #cc5200;
+}
+
+
+
+/* 모바일에서 화살표 크기 조정 */
+@media (max-width: 768px) {
+  .modal-nav-arrow {
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+  }
+  .modal-prev-arrow {
+    left: 15px;
+  }
+  .modal-next-arrow {
+    right: 15px;
+  }
 }
 
 /* --- 확대 안내 오버레이 --- */
@@ -286,31 +321,8 @@
 .zoom-ready{
   cursor: zoom-in;
 }
-
-/* === Zoom 컨트롤: 텍스트 정확히 가운데 정렬 === */
-.zoom-controls button {
-  display: flex;               /* 가운데 정렬용 */
-  align-items: center;         /* 수직 가운데 */
-  justify-content: center;     /* 수평 가운데 */
-  line-height: 1;              /* 폰트 베이스라인 영향 제거 */
-  padding: 0 14px;             /* 좌우 여백 살짝 */
-  box-sizing: border-box;      /* 테두리 포함 계산 */
-}
-
-/* === 저장 버튼: '영상 다운로드'와 동일 색상 사용 === */
-#zoomSaveBtn {
-  background-color: #ff6600;   /* 영상 다운로드와 동일 */
-  border-color: #ff6600;       /* 테두리도 같은 톤으로 */
-  color: #fff;
-}
-#zoomSaveBtn:hover {
-  background-color: #cc5200;   /* hover 색상도 동일 */
-  border-color: #cc5200;
-}
-
-
 /* === 모달 페이드/스케일 애니메이션 (닫기/열기 부드럽게) === */
-/* 기존 .zoom-modal display 규칙을 덮어쓰도록 '아래쪽'에 추가하세요 */
+
 .zoom-modal {
   /* 항상 렌더(애니메이션용) */
   display: block;
@@ -355,4 +367,43 @@
 .zoom-toast.show {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
+}
+
+/* ============================= */
+/* 🗺️ 미니맵 (썸네일 미리보기) */
+/* ============================= */
+
+/* Minimap container */
+.zoom-minimap {
+  position: absolute;
+  right: 16px;
+  bottom: 72px;
+  width: 160px;
+  height: 120px;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.35);
+  box-shadow: 0 6px 20px rgba(0,0,0,.35);
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* Minimap canvas */
+#zoomMiniCanvas {
+  width: 140px;
+  height: 100px;
+  display: block;
+  background: rgba(255,255,255,0.06);
+  border-radius: 6px;
+}
+
+/* Viewport rectangle */
+.zoom-mini-rect {
+  position: absolute;
+  border: 2px solid #ffcc00;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.25) inset;
+  pointer-events: none;
 }
