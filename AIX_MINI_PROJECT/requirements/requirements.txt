@@ -11,5 +11,9 @@ fastapi==0.115.0                # 파이썬에서 HTML, CSS, JS를 활용한 웹
 uvicorn[standard]==0.30.6       # FastAPI 서버 실행용
 jinja2==3.1.4                   # HTML 템플릿 렌더링
 python-multipart==0.0.6         # Form 데이터를 처리할 때 필요
+tqdm==4.66.5                    # 반복문(루프)의 진행 상황을 한눈에 볼 수 있게 해주는 진행률 확인 가능
+
+# YOLO
+ultralytics>=8.0.196            # YOLO
 
 # os, shutil, json 설치 필요 X - 파일/폴더 관리 및 데이터 불러오기
